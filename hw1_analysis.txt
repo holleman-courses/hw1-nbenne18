@@ -1,0 +1,127 @@
+HW1 ANALYSIS
+
+
+Problem 1
+
+A. PARAMETER STORAGE (bytes)
+
+  Layer 1 (input 120 → hidden 256):  weights 120×256 = 30,720,  biases 256  →  30,976 params
+  Layer 2 (256 → 256):               weights 256×256 = 65,536,  biases 256  →  65,792 params
+  Layer 3 (256 → 10):                weights 256×10 = 2,560,   biases 10   →   2,570 params
+  ---------------------------------------------------------------------------------------
+  Total parameters: 99,338
+
+  Each parameter is 8 bits = 1 byte.
+  Parameter storage = 99,338 bytes.
+
+
+B. MAC OPERATIONS (one inference)
+
+  One MAC per weight multiplication (multiply-accumulate).
+  Layer 1: 120 × 256 = 30,720 MACs
+  Layer 2: 256 × 256 = 65,536 MACs
+  Layer 3: 256 × 10  =  2,560 MACs
+  ---------------------------------------------------------------------------------------
+  Total MACs = 98,816.
+
+
+C. TEMPORARY STORAGE (SRAM)
+
+  Store outputs of two consecutive layers at a time (current layer output + next layer input).
+
+  • Input (layer 0) + Layer 1 output:  120 + 256 = 376 bytes
+  • Layer 1 output + Layer 2 output:   256 + 256 = 512 bytes  <- largest
+  • Layer 2 output + Layer 3 output:   256 + 10  = 266 bytes
+
+  SRAM required = 512 bytes.
+
+
+Problem 2
+
+A. PARAMETER STORAGE (bytes)
+
+  Layer 1 (1280 → 512):  (1280×512 + 512) = 655,872 params  →  655,872 × 4 = 2,623,488 bytes
+  Layer 2 (512 → 512):   (512×512 + 512)  = 262,656 params  →  262,656 × 4 = 1,050,624 bytes
+  Layer 3 (512 → 32):    (512×32 + 32)    =  16,416 params  →   16,416 × 4 =    65,664 bytes
+  ---------------------------------------------------------------------------------------
+  Total parameters: 934,944.  32 bits = 4 bytes per parameter.
+  Parameter storage = 3,739,776 bytes.
+
+
+B. INFERENCE TIME (milliseconds)
+
+  Processor: 80 MHz, 1 MAC every 4 cycles  →  80×10^6 / 4 = 20×10^6 MACs per second.
+
+  Total MACs per inference:
+    Layer 1: 1280 × 512 = 655,360
+    Layer 2: 512 × 512  = 262,144
+    Layer 3: 512 × 32   =  16,384
+    Total: 933,888 MACs
+
+  Time = 933,888 / (20×10^6) s = 0.0466944 s = 46.69 ms.
+
+  Inference time ≈ 46.69 ms (or 46.7 ms).
+
+
+C. TEMPORARY STORAGE (SRAM)
+
+  Each activation is 32 bits = 4 bytes.
+
+  • Input + Layer 1 output:   1280×4 + 512×4 = 5120 + 2048 = 7,168 bytes <- largest
+  • Layer 1 output + Layer 2:  2048 + 2048 = 4,096 bytes
+  • Layer 2 output + Layer 3:  2048 + 128  = 2,176 bytes
+
+  SRAM required = 7,168 bytes.
+
+
+Problem 3
+
+A. PARAMETER STORAGE (bytes)
+
+  Same padding with 3×3 keeps spatial size: 80×80.
+
+  Conv 1:  input 3 channels, 128 filters, 3×3
+    Weights: 3×3×3×128 = 3,456,  Biases: 128  ->  3,584 params
+  Conv 2:  input 128 channels, 128 filters, 3×3
+    Weights: 3×3×128×128 = 147,456,  Biases: 128  ->  147,584 params
+  Dense:   input 80×80×128 = 819,200,  output 10
+    Weights: 819,200×10 = 8,192,000,  Biases: 10  ->  8,192,010 params
+  ---------------------------------------------------------------------------------------
+  Total parameters: 3,584 + 147,584 + 8,192,010 = 8,343,178.
+
+  Each parameter is 8 bits = 1 byte.
+  Parameter storage = 8,343,178 bytes.
+
+
+B. INFERENCE TIME (milliseconds)
+
+  Processor: 120 MHz, 4 MACs per cycle  →  120×10^6 × 4 = 480×10^6 MACs per second.
+
+  Conv 1:  each of 128×80×80 outputs needs 3×3×3 = 27 MACs per filter
+    → 27 × 128 × (80×80) = 22,118,400 MACs
+  Conv 2:  each of 128×80×80 outputs needs 3×3×128 = 1,152 MACs per filter
+    → 1,152 × 128 × (80×80) = 943,718,400 MACs
+  Dense:  819,200 × 10 = 8,192,000 MACs
+  ---------------------------------------------------------------------------------------
+  Total MACs = 22,118,400 + 943,718,400 + 8,192,000 = 974,028,800
+
+  Time = 974,028,800 / (480×10^6) s = 2.0292 s = 2029.2 ms.
+
+  Inference time ≈ 2029 ms (or 2029.2 ms).
+
+
+C. TEMPORARY STORAGE (SRAM)
+
+  Each activation 8 bits = 1 byte. Spatial size 80×80 with same padding.
+
+  • Input:           80×80×3    = 19,200 bytes
+  • Conv 1 output:   80×80×128  = 819,200 bytes
+  • Conv 2 output:   80×80×128  = 819,200 bytes
+  • Dense output:    10         = 10 bytes
+
+  Consecutive pairs:
+  • Input + Conv 1 out:     19,200 + 819,200 = 838,400 bytes
+  • Conv 1 out + Conv 2 out: 819,200 + 819,200 = 1,638,400 bytes  <- largest
+  • Conv 2 out + Dense out: 819,200 + 10 = 819,210 bytes
+
+  SRAM required = 1,638,400 bytes.
